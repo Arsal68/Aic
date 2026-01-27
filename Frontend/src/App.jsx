@@ -1,20 +1,28 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// Import your pages
+// Import all your pages
 import AuthForm from "./AuthForm";
-import CreateEvent from "./CreateEvents"; 
+import CreateEvent from "./CreateEvents";
+// import StudentDashboard from "./StudentDashboard"; // <--- This was missing!
 import AdminDashboard from "./AdminDashboard";
+import SocietyDashboard from "./SocietyDashboard";
 
 function App() {
-  // ❌ DO NOT put useNavigate() here. It will crash the app.
-  // ❌ DO NOT put useEffect() here checking for login.
-  
   return (
     <Router>
       <Routes>
+        {/* 1. Login/Signup Page (Home) */}
         <Route path="/" element={<AuthForm />} />
+
+        {/* 2. Society Pages */}
+        <Route path="/society-dashboard" element={<SocietyDashboard />} />
         <Route path="/create-event" element={<CreateEvent />} />
+
+        {/* 3. Student Page */}
+        {/* <Route path="/student-dashboard" element={<StudentDashboard />} /> */}
+
+        {/* 4. Admin Page */}
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </Router>

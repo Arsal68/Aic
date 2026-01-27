@@ -112,7 +112,7 @@ export default function AuthForm() {
       if (profileError) throw new Error("Failed to fetch user profile.");
 
       if (profile.role === "society") {
-        navigate("/create-event");
+        navigate("/society-dashboard");
       } else if (profile.role === "admin") {
         navigate("/admin-dashboard");
       } else {
