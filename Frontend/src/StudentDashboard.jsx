@@ -17,7 +17,8 @@ export default function StudentDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSociety, setSelectedSociety] = useState("");
   const [selectedType, setSelectedType] = useState("");
-  const [selectedDate, setSelectedDate] = useState(null); // YYYY-MM-DD format
+  const [selectedDate, setSelectedDate] = useState(null); 
+  
 
   // Calendar State
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -314,7 +315,6 @@ export default function StudentDashboard() {
              <p className="text-xs text-center text-gray-400 mt-3">Click a date to filter events</p>
           </div>
 
-          {/* 3. SOCIETY DIRECTORY BUTTON */}
           <button onClick={() => setShowSocietyModal(true)} className="w-full py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl shadow-sm hover:bg-gray-50 transition flex items-center justify-center gap-2 text-sm">
              🏢 Browse Societies
           </button>
@@ -322,8 +322,6 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* --- MODALS (Register & Society) --- */}
-      {/* Kept exactly as before, included for completeness in functionality */}
       {showModal && selectedEvent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
