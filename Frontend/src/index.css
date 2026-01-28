@@ -1,1 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Asset&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Carter+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik+Iso&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=McLaren&display=swap');
 @import "tailwindcss";
+
+
+.font-asset {
+  font-family: "Asset", serif;
+}
+.font-carter {
+  font-family:"Carter One", system-ui
+}
+.font-rubikso {
+  font-family:"Rubik Iso", system-ui;
+}
+.font-mclaren {
+  font-family: "McLaren", sans-serif;
+}
+
+
+*{
+    box-sizing: border-box;
+    font-family: sans-serif; 
+}

@@ -113,7 +113,7 @@ export default function SocietyDashboard() {
   };
 
   const closeModal = () => { setSelectedEventId(null); setAttendees([]); };
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/", { replace: true }); };
+  const handleLogout = async () => { await supabase.auth.signOut(); navigate("/login", { replace: true }); };
 
   if (loading) return <div className="p-10 text-center">Loading Dashboard...</div>;
 

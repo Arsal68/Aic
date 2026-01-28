@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { supabase } from "./supabase"; // Adjust path if needed
+import { supabase } from "./supabase"; 
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react"; // Import the icon
 
 export default function CreateEvent() {
   const navigate = useNavigate();
   
-  // Form States
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -14,17 +14,14 @@ export default function CreateEvent() {
   const [venue, setVenue] = useState("");
   const [posterFile, setPosterFile] = useState(null);
 
-  // System States
   const [societyId, setSocietyId] = useState(null);
-  const [societyName, setSocietyName] = useState(""); // For display only
+  const [societyName, setSocietyName] = useState(""); 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // 1. On Load: Identify the Society
   useEffect(() => {
     const fetchUserSociety = async () => {
-      // Get logged in user
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -32,8 +29,6 @@ export default function CreateEvent() {
         return;
       }
 
-      // Fetch profile to get society_id
-      // We join the 'societies' table to get the readable name
       const { data: profile, error } = await supabase
         .from("profiles")
         .select(`
@@ -47,7 +42,6 @@ export default function CreateEvent() {
         setMessage({ type: "error", text: "You are not linked to any Society account." });
       } else {
         setSocietyId(profile.society_id);
-        // Access nested data from the join
         setSocietyName(profile.societies?.name || "Unknown Society");
       }
       setLoading(false);
@@ -56,7 +50,6 @@ export default function CreateEvent() {
     fetchUserSociety();
   }, [navigate]);
 
-  // 2. Handle Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -67,19 +60,17 @@ export default function CreateEvent() {
 
       let posterUrl = null;
 
-      // A. Upload Poster (if exists)
       if (posterFile) {
         const fileExt = posterFile.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `${societyId}/${fileName}`; // Organize folders by society
+        const filePath = `${societyId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('posters') // Ensure this bucket exists in Supabase
+          .from('posters')
           .upload(filePath, posterFile);
 
         if (uploadError) throw uploadError;
 
-        // Get Public URL
         const { data: urlData } = supabase.storage
           .from('posters')
           .getPublicUrl(filePath);
@@ -87,7 +78,6 @@ export default function CreateEvent() {
         posterUrl = urlData.publicUrl;
       }
 
-      // B. Insert Event into Database
       const { error: insertError } = await supabase
         .from("events")
         .insert([
@@ -96,21 +86,20 @@ export default function CreateEvent() {
             description,
             event_date: eventDate,
             start_time: startTime,
-            end_time: endTime, // Can be null based on your schema
+            end_time: endTime,
             venue,
             poster_url: posterUrl,
-            society_id: societyId, // AUTOMATICALLY LINKED
-            status: "pending"      // Default status
+            society_id: societyId,
+            status: "pending"
           },
         ]);
 
       if (insertError) throw insertError;
 
-      // C. Success
-      setMessage({ type: "success", text: "Event submitted! Status is currently PENDING approval." });
-      // Reset Form
-      setTitle(""); setDescription(""); setEventDate(""); 
-      setStartTime(""); setEndTime(""); setVenue(""); setPosterFile(null);
+      setMessage({ type: "success", text: "Event submitted! Redirecting to dashboard..." });
+      
+      // Optional: Auto-redirect after success
+      setTimeout(() => navigate("/society-dashboard"), 2000);
 
     } catch (error) {
       console.error(error);
@@ -120,32 +109,41 @@ export default function CreateEvent() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Checking Society Permissions...</div>;
+  if (loading) return <div className="p-10 text-center font-sans text-gray-500">Checking Society Permissions...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-10">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl border border-gray-200">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-4 font-sans">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl border border-gray-100">
         
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Create New Event</h2>
+        {/* --- BACK BUTTON --- */}
+        <button 
+          onClick={() => navigate("/society-dashboard")}
+          className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors mb-6 font-bold text-sm group"
+        >
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          Back to Dashboard
+        </button>
+
+        <h2 className="text-3xl font-black text-gray-900 mb-2">Create New Event</h2>
         
-        {/* Read-Only Badge showing who is posting */}
-        <div className="mb-6 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg inline-block text-sm font-semibold">
-          Posting as: {societyName}
+        <div className="mb-8 flex items-center gap-2">
+          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+            Posting as: {societyName}
+          </span>
         </div>
 
         {message.text && (
-          <div className={`p-4 mb-4 rounded ${message.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+          <div className={`p-4 mb-6 rounded-xl font-semibold text-sm ${message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Event Title</label>
+            <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">Event Title</label>
             <input 
-              className="mt-1 w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+              className="w-full border border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50/50" 
               placeholder="e.g. Annual Tech Symposium" 
               value={title} onChange={(e) => setTitle(e.target.value)} required 
             />
@@ -153,11 +151,11 @@ export default function CreateEvent() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">Description</label>
             <textarea 
               rows="4"
-              className="mt-1 w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-              placeholder="Event details..." 
+              className="w-full border border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50/50" 
+              placeholder="Provide detailed information about the event..." 
               value={description} onChange={(e) => setDescription(e.target.value)} 
             />
           </div>
@@ -165,50 +163,55 @@ export default function CreateEvent() {
           {/* Date & Time Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Date</label>
-              <input type="date" className="mt-1 w-full border border-gray-300 p-3 rounded-lg" 
+              <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">Date</label>
+              <input type="date" className="w-full border border-gray-200 p-4 rounded-xl bg-gray-50/50 focus:ring-2 focus:ring-blue-500 outline-none" 
                 value={eventDate} onChange={(e) => setEventDate(e.target.value)} required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Start Time</label>
-              <input type="time" className="mt-1 w-full border border-gray-300 p-3 rounded-lg" 
+              <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">Start Time</label>
+              <input type="time" className="w-full border border-gray-200 p-4 rounded-xl bg-gray-50/50 focus:ring-2 focus:ring-blue-500 outline-none" 
                 value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">End Time (Optional)</label>
-              <input type="time" className="mt-1 w-full border border-gray-300 p-3 rounded-lg" 
+              <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">End Time</label>
+              <input type="time" className="w-full border border-gray-200 p-4 rounded-xl bg-gray-50/50 focus:ring-2 focus:ring-blue-500 outline-none" 
                 value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
           </div>
 
           {/* Venue */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Venue</label>
+            <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">Venue</label>
             <input 
-              className="mt-1 w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-              placeholder="e.g. Main Auditorium" 
+              className="w-full border border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50/50" 
+              placeholder="e.g. Main Auditorium / Cisco Lab" 
               value={venue} onChange={(e) => setVenue(e.target.value)} required 
             />
           </div>
 
           {/* Poster Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Event Poster (Image)</label>
-            <input 
-              type="file" accept="image/*"
-              className="mt-1 w-full border border-gray-300 p-2 rounded-lg bg-gray-50"
-              onChange={(e) => setPosterFile(e.target.files[0])} 
-            />
+            <label className="block text-xs font-black uppercase text-gray-400 mb-2 ml-1">Event Poster</label>
+            <div className="relative group">
+              <input 
+                type="file" accept="image/*"
+                className="w-full border-2 border-dashed border-gray-200 p-8 rounded-2xl bg-gray-50 text-center cursor-pointer group-hover:border-blue-300 transition-colors"
+                onChange={(e) => setPosterFile(e.target.files[0])} 
+              />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 font-medium">
+                {posterFile ? posterFile.name : "Click to upload event image"}
+              </div>
+            </div>
           </div>
 
-          <div className="pt-4">
+          <div className="pt-6">
             <button 
               type="submit" 
               disabled={submitting || !societyId} 
-              className={`w-full text-white font-bold py-3 rounded-lg transition shadow-md 
-                ${submitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+              className={`w-full text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-100 uppercase tracking-widest
+                ${submitting ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:scale-95"}`}
             >
-              {submitting ? "Submitting..." : "Create Event"}
+              {submitting ? "Processing..." : "Submit Event"}
             </button>
           </div>
         </form>
