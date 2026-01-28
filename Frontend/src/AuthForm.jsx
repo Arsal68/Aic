@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "./supabase"; 
 import { useNavigate } from "react-router-dom";
 
@@ -18,7 +18,41 @@ export default function AuthForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // --- 1. AUTO-LOGIN CHECK (Persistence) ---
+  useEffect(() => {
+    const checkSession = async () => {
+      // Check Fake Admin Flag
+      if (localStorage.getItem("nep_admin_bypass")) {
+        navigate("/admin-dashboard", { replace: true });
+        return;
+      }
+
+      // Check Real User Session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile) redirectUser(profile.role);
+      }
+    };
+    checkSession();
+  }, [navigate]);
+
+  // Helper to handle navigation cleanly
+  const redirectUser = (role) => {
+    if (role === "society") navigate("/society-dashboard", { replace: true });
+    else if (role === "admin") navigate("/admin-dashboard", { replace: true });
+    else navigate("/student-dashboard", { replace: true });
+  };
+
   const handleSignup = async () => {
+    // 🛡️ SECURITY: Clear any ghost admin flags
+    localStorage.removeItem("nep_admin_bypass");
+    
     setError("");
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -38,62 +72,53 @@ export default function AuthForm() {
     }
 
     const user = data.user;
-    if (!user) {
-      setError("Signup failed or email confirmation pending.");
-      setLoading(false);
-      return;
-    }
-
-    const { error: profileError } = await supabase.from("profiles").insert([
-      {
+    if (user) {
+      const { error: profileError } = await supabase.from("profiles").insert([{
         id: user.id,
         fullname,
         email,
         username,
         role,
-      },
-    ]);
+      }]);
 
-    if (profileError) {
-      setError(profileError.message);
-      setLoading(false);
-      return;
+      if (profileError) {
+        setError(profileError.message);
+      } else {
+        alert("Signup successful! You can now login.");
+        setIsLogin(true);
+      }
     }
-
-    alert("Signup successful! You can now login.");
     setLoading(false);
-    setIsLogin(true); 
   };
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
     
-    // --- 🔴 BACKDOOR START: Developer Admin Mode ---
-    // This allows you to bypass Supabase Login completely
+    // --- 🔴 BACKDOOR ADMIN LOGIN ---
     if (loginInput === "admin" && password === "admin") {
-      alert("⚠️ Entering Developer Admin Mode (Bypassing Auth)");
-      navigate("/admin-dashboard");
-      return; // Stop here, do not contact Supabase
+      localStorage.setItem("nep_admin_bypass", "true"); 
+      navigate("/admin-dashboard", { replace: true }); // Fix Back Button
+      return;
     }
-    // --- 🔴 BACKDOOR END ---
 
+    // --- 🟢 REAL USER LOGIN ---
+    // 🛡️ SECURITY: Clear any ghost admin flags
+    localStorage.removeItem("nep_admin_bypass");
+    
     setError("");
     setLoading(true);
 
-    let loginEmail = loginInput;
-
     try {
+      let loginEmail = loginInput;
       if (!loginInput.includes("@")) {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("profiles")
           .select("email")
           .eq("username", loginInput)
           .single();
 
-        if (error || !data) {
-          throw new Error("Username not found.");
-        }
-        loginEmail = data.email;
+        if (data) loginEmail = data.email;
+        else throw new Error("Username not found.");
       }
 
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -111,13 +136,8 @@ export default function AuthForm() {
 
       if (profileError) throw new Error("Failed to fetch user profile.");
 
-      if (profile.role === "society") {
-        navigate("/society-dashboard");
-      } else if (profile.role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/student-dashboard");
-      }
+      // Use the helper with replace: true
+      redirectUser(profile.role);
 
     } catch (err) {
       setError(err.message);
@@ -132,8 +152,7 @@ export default function AuthForm() {
     else handleSignup();
   };
 
-  const inputClasses =
-    "px-4 py-3 mb-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
+  const inputClasses = "px-4 py-3 mb-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition";
 
   return (
     <div className="max-w-md mx-auto mt-12 p-8 bg-white rounded-xl shadow-lg font-sans">
@@ -166,7 +185,7 @@ export default function AuthForm() {
           </>
         )}
 
-        <button type="submit" disabled={loading} className={`mt-4 py-3 rounded-lg font-semibold text-white shadow-md transition-colors duration-300 ${loading ? "bg-blue-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 cursor-pointer"}`}>
+        <button type="submit" disabled={loading} className={`mt-4 py-3 rounded-lg font-semibold text-white shadow-md transition ${loading ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"}`}>
           {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
         </button>
       </form>
